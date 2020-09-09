@@ -1,0 +1,48 @@
+Silicon Labs Gecko HAL
+######################
+
+Origin:
+   Silicon Labs Gecko SDK
+   https://www.silabs.com/products/development-tools/software/simplicity-studio
+
+Version:
+   v2.7.3
+
+Purpose:
+   Add support for Silicon Labs EXX32 SoCs
+
+Description:
+   This code component is used to add Zephyr support for Silicon Labs EXX32 SoCs.
+   To speed up the development process it is based on the Silicon Labs HAL.
+
+   The Silicon Labs HAL is split into SoC specific folders. They share the 
+   Peripheral Support library.
+
+   The following folders are imported:
+   platform/Device/SiliconLabs/$(GECKO_DEVICE)
+   platform/emlib
+
+Dependencies:
+   This source code depends on headers and sources from Zephyr:
+   ext/hal/cmsis
+
+URL:
+   https://www.silabs.com/products/development-tools/software/simplicity-studio
+
+Maintained-by:
+   External
+
+License:
+   Apache 2.0 and proprietary
+
+How to update
++++++++++++++
+
+  * git clone https://github.com/SiliconLabs/wfx-fullMAC-driver.git
+  * cd wfx-fullMAC-driver
+  * git archive master | (cd /path/to/hal_silabs/wfx/; tar xvvf -)
+  * cd ..
+  * git clone https://github.com/SiliconLabs/wfx-fullMAC-tools.git
+  * cd wfx-fullMAC-tools
+  * git archive master:Examples/SiliconLabs/shared sdio | (cd /path/to/hal_silabs/wfx/; tar xvvf -)
+  * Replace sdio IRQ handling
