@@ -11,9 +11,12 @@ string(TOUPPER ${CONFIG_SOC_SERIES} SILABS_GECKO_DEVICE)
 
 set(SILABS_GECKO_PART_NUMBER ${CONFIG_SOC_PART_NUMBER})
 
+add_subdirectory(service)
+
 zephyr_include_directories(
   Device/SiliconLabs/${SILABS_GECKO_DEVICE}/Include
   emlib/inc
+  common/inc
   )
 
 # The gecko SDK uses the cpu name to include the matching device header.
