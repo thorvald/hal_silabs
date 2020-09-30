@@ -1,4 +1,4 @@
-/***************************************************************************//**
+/*******************************************************************************
  * @file
  * @brief SL Status Codes.
  *******************************************************************************
@@ -33,19 +33,14 @@
 
 #include <stdint.h>
 
-/***************************************************************************//**
- * @addtogroup platform_common
- * @{
- ******************************************************************************/
-
-/***************************************************************************//**
- * @addtogroup sl_status Status Codes
- * @{
- ******************************************************************************/
-
 /*******************************************************************************
- ***************************   SPACE DEFINES   *********************************
+ * @addtogroup status Status Codes
+ * @brief Status codes
+ * @{
  ******************************************************************************/
+
+// -----------------------------------------------------------------------------
+// Space Defines
 
 #define SL_STATUS_SPACE_MASK              ((sl_status_t)0xFF00)
 
@@ -74,13 +69,11 @@
 #define SL_STATUS_BLUETOOTH_SMP_SPACE     ((sl_status_t)0x1200)
 #define SL_STATUS_BLUETOOTH_MESH_FOUNDATION_SPACE     ((sl_status_t)0x1300)
 
-/*******************************************************************************
- ***************************   STATUS DEFINES   ********************************
- ******************************************************************************/
+// -----------------------------------------------------------------------------
+// Status Defines
 
-/*******************************************************************************
- ***************************   GENERIC ERRORS   ********************************
- ******************************************************************************/
+// -----------------------------------------------------------------------------
+// Generic Errors
 
 #define SL_STATUS_OK    ((sl_status_t)0x0000)  ///< No error.
 #define SL_STATUS_FAIL  ((sl_status_t)0x0001)  ///< Generic error.
@@ -178,6 +171,15 @@
 
 // Misc Errors
 #define SL_STATUS_BUS_ERROR                     ((sl_status_t)0x004B)  ///< Bus error, e.g. invalid DMA address
+
+// Unified MAC Errors
+#define SL_STATUS_CCA_FAILURE                   ((sl_status_t)0x004C)  ///<
+
+// Scan errors
+#define SL_STATUS_MAC_SCANNING                  ((sl_status_t)0x004D)  ///<
+#define SL_STATUS_MAC_INCORRECT_SCAN_TYPE       ((sl_status_t)0x004E)  ///<
+#define SL_STATUS_INVALID_CHANNEL_MASK          ((sl_status_t)0x004F)  ///<
+#define SL_STATUS_BAD_SCAN_DURATION             ((sl_status_t)0x0050)  ///<
 
 // Bluetooth status codes
 #define SL_STATUS_BT_OUT_OF_BONDS                                                                        ((sl_status_t)0x0402)        ///< Bonding procedure can't be started because device has no space left for bond.
@@ -331,9 +333,8 @@
 #define SL_STATUS_BT_MESH_FOUNDATION_UNSPECIFIED                                                         ((sl_status_t)0x1310)     ///< Returned when an unspecified error took place
 #define SL_STATUS_BT_MESH_FOUNDATION_INVALID_BINDING                                                     ((sl_status_t)0x1311)     ///< Returned when the NetKeyIndex and AppKeyIndex combination is not valid for a Config AppKey Update
 
-/*******************************************************************************
- ********************************   WIFI ERRORS   ******************************
- ******************************************************************************/
+// -----------------------------------------------------------------------------
+// Wi-Fi Errors
 
 #define SL_STATUS_WIFI_INVALID_KEY                         ((sl_status_t)0x0B01)  ///< Invalid firmware keyset
 #define SL_STATUS_WIFI_FIRMWARE_DOWNLOAD_TIMEOUT           ((sl_status_t)0x0B02)  ///< The firmware download took too long
@@ -357,27 +358,64 @@
 #define SL_STATUS_WIFI_RETRY_EXCEEDED                      ((sl_status_t)0x0B1F)  ///< The request failed because the retry limit was exceeded
 #define SL_STATUS_WIFI_TX_LIFETIME_EXCEEDED                ((sl_status_t)0x0B20)  ///< The request failed because the MSDU life time was exceeded
 
-/*******************************************************************************
- ********************************   DATA TYPES   *******************************
- ******************************************************************************/
+// -----------------------------------------------------------------------------
+// Data Types
 
 typedef uint32_t sl_status_t;
 
-/*******************************************************************************
- ********************************   FUNCTIONS   ********************************
- ******************************************************************************/
+// -----------------------------------------------------------------------------
+// Functions
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// Placeholder for future string functions.
+/********************************************************************************************************
+ *                                      sl_status_get_string_n()
+ *
+ * @brief    Get a copy of the status string associated to the status code passed, up to
+ *           'buffer_length' length, if the string associated to the status code is enabled. If not,
+ *           the error code number, in hex, prefixed by "SL_STATUS_" will be copied in the buffer
+ *           instead.
+ *           For example, the buffer would either contain "SL_STATUS_FAIL" if that status string is
+ *           enabled, or "SL_STATUS_0x0001" if the string is disabled, as SL_STATUS_FAIL's
+ *           value is 0x0001.
+ *
+ * @param    status         The status code from which to obtain the status string.
+ *
+ * @param    buffer         Pointer to a buffer in which the status string will be copied. A terminating
+ *                          null-character will be appended after the copied status string.
+ *
+ * @param    buffer_length  Maximum number of characters that can be written in the buffer, including the
+ *                          terminating null-character. If the status string would be longer than the
+ *                          available length, it will be truncated and a null-terminating character will
+ *                          be the last character contained in the buffer.
+ *
+ * @return                  The number of characters that would have been written if the buffer_length had been
+ *                          sufficiently large, not counting the terminating null character.
+ *                          If the status code is invalid, 0 or a negative number is returned.
+ *                          Notice that only when this returned value is strictly positive and less than
+ *                          buffer_length, the status string has been completely written in the buffer.
+ *******************************************************************************************************/
+int32_t sl_status_get_string_n(sl_status_t status, char *buffer, uint32_t buffer_length);
+
+/********************************************************************************************************
+ *                                         sl_status_print()
+ *
+ * @brief    Print, through printf, the string associated to the passed status code. If the string
+ *           associated to the status code is enabled, the status string will be printed, for example
+ *           "SL_STATUS_OK". If the string associated to the status code is disabled, the status number,
+ *           in hex, prefixed by "SL_STATUS_" will be printed instead, for example "SL_STATUS_0x0000",
+ *           as SL_STATUS_OK's value is 0x0000.
+ *
+ * @param    status         The status code of which to print the status string.
+ *******************************************************************************************************/
+void sl_status_print(sl_status_t status);
 
 #ifdef __cplusplus
 }
 #endif
 
-/** @} (end addtogroup sl_status) */
-/** @} (end addtogroup platform_common) */
+/** @} (end addtogroup status) */
 
 #endif /* SL_STATUS_H */

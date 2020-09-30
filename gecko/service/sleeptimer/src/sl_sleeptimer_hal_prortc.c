@@ -29,10 +29,18 @@
  ******************************************************************************/
 
 #include "sl_sleeptimer.h"
-#include "sl_sleeptimer_hal.h"
+#include "sli_sleeptimer_hal.h"
 #include "em_core.h"
 #include "em_cmu.h"
 #include "em_bus.h"
+
+#if defined(SL_COMPONENT_CATALOG_PRESENT)
+#include  <sl_component_catalog.h>
+#endif
+
+#if defined(SL_CATALOG_POWER_MANAGER_PRESENT) && (_SILICON_LABS_32B_SERIES_2_CONFIG == 1)
+#include "sli_power_manager.h"
+#endif
 
 #if SL_SLEEPTIMER_PERIPHERAL == SL_SLEEPTIMER_PERIPHERAL_PRORTC
 
@@ -61,9 +69,9 @@
 #warning A value other than 1 for SL_SLEEPTIMER_FREQ_DIVIDER is not supported on Radio Internal RTC (PRORTC)
 #endif
 
-static bool cc_disabled = true;
-
 static uint32_t get_time_diff(uint32_t a, uint32_t b);
+
+static bool cc_disabled = true;
 
 /******************************************************************************
  * Initializes PRORTC sleep timer.
@@ -159,6 +167,13 @@ void sleeptimer_hal_init_timer(void)
 #else
   PRORTC->IFC = _RTCC_IF_MASK;
 #endif
+#endif
+
+  // Never modify the high frequency clocks settings for xG21 chip family.
+  // These chip communicate with the PRORTC module via a special bus.
+  // This bus need a high frequency clock to operate correctly.
+#if defined(SL_CATALOG_POWER_MANAGER_PRESENT) && (_SILICON_LABS_32B_SERIES_2_CONFIG == 1)
+  sli_power_manager_preserve_hf_clock_settings();
 #endif
 
   NVIC_ClearPendingIRQ(PRORTC_IRQn);
@@ -278,7 +293,7 @@ void sleeptimer_hal_disable_int(uint8_t local_flag)
  *
  * Note: This function must be called with interrupts disabled.
  *****************************************************************************/
-bool sleeptimer_hal_is_int_status_set(uint8_t local_flag)
+bool sli_sleeptimer_hal_is_int_status_set(uint8_t local_flag)
 {
   bool int_is_set = false;
   uint32_t irq_flag = PRORTC->IF;;

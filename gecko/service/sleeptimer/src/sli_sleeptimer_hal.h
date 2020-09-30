@@ -28,17 +28,15 @@
  *
  ******************************************************************************/
 
-#ifndef SLEEPTIMER_HAL_H
-#define SLEEPTIMER_HAL_H
+#ifndef SL_SLEEPTIMER_HAL_H
+#define SL_SLEEPTIMER_HAL_H
 
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
 #include "em_device.h"
+#include "sli_sleeptimer.h"
 #include "sl_sleeptimer_config.h"
-
-#define SLEEPTIMER_EVENT_OF (0x01)
-#define SLEEPTIMER_EVENT_COMP (0x02)
 
 #if SL_SLEEPTIMER_PERIPHERAL == SL_SLEEPTIMER_PERIPHERAL_DEFAULT
 #if defined(RTCC_PRESENT) && RTCC_COUNT >= 1
@@ -47,6 +45,9 @@
 #elif defined(RTC_PRESENT) && RTC_COUNT >= 1
 #undef SL_SLEEPTIMER_PERIPHERAL
 #define SL_SLEEPTIMER_PERIPHERAL SL_SLEEPTIMER_PERIPHERAL_RTC
+#elif defined(BURTC_PRESENT) && BURTC_COUNT >= 1
+#undef SL_SLEEPTIMER_PERIPHERAL
+#define SL_SLEEPTIMER_PERIPHERAL SL_SLEEPTIMER_PERIPHERAL_BURTC
 #endif
 #endif
 
@@ -100,16 +101,6 @@ void sleeptimer_hal_enable_int(uint8_t local_flag);
 void sleeptimer_hal_disable_int(uint8_t local_flag);
 
 /*******************************************************************************
- * Hardware Abstraction Layer to get interrupt status.
- *
- * @param local_flag Internal interrupt flag. Only a single flag can be
- *                   specified per call.
- *
- * @return Boolean indicating if specified interrupt is set.
- ******************************************************************************/
-bool sleeptimer_hal_is_int_status_set(uint8_t local_flag);
-
-/*******************************************************************************
  * Process the timer interrupt.
  *
  * @param flags Internal interrupt flag.
@@ -120,4 +111,4 @@ void process_timer_irq(uint8_t local_flag);
 }
 #endif
 
-#endif /* SLEEPTIMER_HAL_H */
+#endif /* SL_SLEEPTIMER_HAL_H */

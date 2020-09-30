@@ -1,9 +1,9 @@
 /***************************************************************************//**
  * @file
- * @brief SLEEPTIMER configuration.
+ * @brief Sleep Timer configuration file.
  *******************************************************************************
  * # License
- * <b>Copyright 2019 Silicon Laboratories Inc. www.silabs.com</b>
+ * <b>Copyright 2020 Silicon Laboratories Inc. www.silabs.com</b>
  *******************************************************************************
  *
  * SPDX-License-Identifier: Zlib
@@ -30,19 +30,21 @@
 
 // <<< Use Configuration Wizard in Context Menu >>>
 
-#ifndef SLEEPTIMER_CONFIG_H
-#define SLEEPTIMER_CONFIG_H
+#ifndef SL_SLEEPTIMER_CONFIG_H
+#define SL_SLEEPTIMER_CONFIG_H
 
 #define SL_SLEEPTIMER_PERIPHERAL_DEFAULT 0
 #define SL_SLEEPTIMER_PERIPHERAL_RTCC    1
 #define SL_SLEEPTIMER_PERIPHERAL_PRORTC  2
 #define SL_SLEEPTIMER_PERIPHERAL_RTC     3
+#define SL_SLEEPTIMER_PERIPHERAL_BURTC   4
 
 // <o SL_SLEEPTIMER_PERIPHERAL> Timer Peripheral Used by Sleeptimer
 //   <SL_SLEEPTIMER_PERIPHERAL_DEFAULT=> Default (auto select)
 //   <SL_SLEEPTIMER_PERIPHERAL_RTCC=> RTCC
 //   <SL_SLEEPTIMER_PERIPHERAL_PRORTC=> Radio internal RTC (PRORTC)
 //   <SL_SLEEPTIMER_PERIPHERAL_RTC=> RTC
+//   <SL_SLEEPTIMER_PERIPHERAL_BURTC=> Back-Up RTC (BURTC)
 // <i> Selection of the Timer Peripheral Used by the Sleeptimer
 #ifndef SL_SLEEPTIMER_PERIPHERAL
 #define SL_SLEEPTIMER_PERIPHERAL  SL_SLEEPTIMER_PERIPHERAL_DEFAULT
@@ -57,9 +59,7 @@
 // <i> Default: 1
 #define SL_SLEEPTIMER_FREQ_DIVIDER  1
 
-// <o SL_SLEEPTIMER_PRORTC_HAL_OWNS_IRQ_HANDLER> If Radio internal RTC (PRORTC)
-// HAL is used, determines if it owns the IRQ handler. Set to 1 if no wireless
-// stack is used.
+// <q SL_SLEEPTIMER_PRORTC_HAL_OWNS_IRQ_HANDLER> If Radio internal RTC (PRORTC) HAL is used, determines if it owns the IRQ handler. Enable, if no wireless stack is used.
 // <i> Default: 0
 #define SL_SLEEPTIMER_PRORTC_HAL_OWNS_IRQ_HANDLER  0
 

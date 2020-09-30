@@ -1,9 +1,9 @@
 /***************************************************************************//**
  * @file
- * @brief SLEEPTIMER hardware abstraction implementation for RTCC.
+ * @brief SLEEPTIMER Hardware abstraction implementation for BURTC.
  *******************************************************************************
  * # License
- * <b>Copyright 2019 Silicon Laboratories Inc. www.silabs.com</b>
+ * <b>Copyright 2020 Silicon Laboratories Inc. www.silabs.com</b>
  *******************************************************************************
  *
  * SPDX-License-Identifier: Zlib
@@ -28,133 +28,141 @@
  *
  ******************************************************************************/
 
-#include "em_rtcc.h"
 #include "sl_sleeptimer.h"
 #include "sli_sleeptimer_hal.h"
+#include "em_burtc.h"
 #include "em_core.h"
 #include "em_cmu.h"
 
-#if SL_SLEEPTIMER_PERIPHERAL == SL_SLEEPTIMER_PERIPHERAL_RTCC
+#if SL_SLEEPTIMER_PERIPHERAL == SL_SLEEPTIMER_PERIPHERAL_BURTC
+
+#if defined(_SILICON_LABS_32B_SERIES_0)
+#error BURTC implementation of the sleeptimer not available on Series 0 chips
+#endif
 
 // Minimum difference between current count value and what the comparator of the timer can be set to.
-#define SLEEPTIMER_COMPARE_MIN_DIFF  2
+#define SLEEPTIMER_COMPARE_MIN_DIFF  4
 
-#define SLEEPTIMER_TMR_WIDTH (_RTCC_CNT_MASK)
+#define SLEEPTIMER_TMR_WIDTH (_BURTC_CNT_MASK)
 
-static bool cc_disabled = true;
-
-__STATIC_INLINE uint32_t get_time_diff(uint32_t a,
-                                       uint32_t b);
+static uint32_t get_time_diff(uint32_t a, uint32_t b);
 
 /******************************************************************************
- * Initializes RTCC sleep timer.
+ * Convert HAL interrupt flag BURTC-interrupt-enable bitmask
  *****************************************************************************/
-void sleeptimer_hal_init_timer(void)
+static uint32_t irqien_hal2burtc(uint8_t hal_flag)
 {
-  RTCC_Init_TypeDef rtcc_init   = RTCC_INIT_DEFAULT;
-  RTCC_CCChConf_TypeDef channel = RTCC_CH_INIT_COMPARE_DEFAULT;
+  uint32_t burtc_if = 0u;
 
-  CMU_ClockEnable(cmuClock_RTCC, true);
+  if (hal_flag & SLEEPTIMER_EVENT_OF) {
+    burtc_if |= BURTC_IEN_OF;
+  }
 
-  rtcc_init.enable = false;
-  rtcc_init.presc = (RTCC_CntPresc_TypeDef)(CMU_PrescToLog2(SL_SLEEPTIMER_FREQ_DIVIDER - 1));
+  if (hal_flag & SLEEPTIMER_EVENT_COMP) {
+    burtc_if |= BURTC_IEN_COMP;
+  }
 
-  RTCC_Init(&rtcc_init);
-
-  // Compare channel starts disabled and is enabled only when compare match interrupt is enabled.
-  channel.chMode = rtccCapComChModeOff;
-  RTCC_ChannelInit(1u, &channel);
-
-  RTCC_IntDisable(_RTCC_IEN_MASK);
-  RTCC_IntClear(_RTCC_IF_MASK);
-  RTCC_CounterSet(0u);
-
-  RTCC_Enable(true);
-
-  NVIC_ClearPendingIRQ(RTCC_IRQn);
-  NVIC_EnableIRQ(RTCC_IRQn);
+  return burtc_if;
 }
 
 /******************************************************************************
- * Gets RTCC counter value.
+ * Convert BURTC interrupt flags to HAL events
+ *****************************************************************************/
+static uint8_t irqflags_burtc2hal(uint32_t burtc_flag)
+{
+  uint8_t hal_if = 0u;
+
+  if (burtc_flag & BURTC_IF_OF) {
+    hal_if |= SLEEPTIMER_EVENT_OF;
+  }
+
+  if (burtc_flag & BURTC_IF_COMP) {
+    hal_if |= SLEEPTIMER_EVENT_COMP;
+  }
+
+  return hal_if;
+}
+
+/******************************************************************************
+ * Initializes BURTC sleep timer.
+ *****************************************************************************/
+void sleeptimer_hal_init_timer()
+{
+  BURTC_Init_TypeDef burtc_init = BURTC_INIT_DEFAULT;
+
+  CMU_ClockEnable(cmuClock_BURTC, true);
+
+  burtc_init.start  = false;
+  burtc_init.clkDiv = SL_SLEEPTIMER_FREQ_DIVIDER;
+
+  BURTC_Init(&burtc_init);
+  BURTC_IntDisable(_BURTC_IEN_MASK);
+  BURTC_IntClear(_BURTC_IF_MASK);
+  BURTC_CounterReset();
+
+  BURTC_Start();
+  BURTC_SyncWait();
+
+  // Setup BURTC interrupt
+  NVIC_ClearPendingIRQ(BURTC_IRQn);
+  NVIC_EnableIRQ(BURTC_IRQn);
+}
+
+/******************************************************************************
+ * Gets BURTC counter.
  *****************************************************************************/
 uint32_t sleeptimer_hal_get_counter(void)
 {
-  return RTCC_CounterGet();
+  return BURTC_CounterGet();
 }
 
 /******************************************************************************
- * Gets RTCC compare value.
+ * Gets BURTC compare value
  *****************************************************************************/
 uint32_t sleeptimer_hal_get_compare(void)
 {
-  return RTCC_ChannelCCVGet(1u);
+  return BURTC_CompareGet(0U);
 }
 
 /******************************************************************************
- * Sets RTCC compare value.
+ * Sets BURTC compare value
  *****************************************************************************/
 void sleeptimer_hal_set_compare(uint32_t value)
 {
   uint32_t counter = sleeptimer_hal_get_counter();
-  uint32_t compare = sleeptimer_hal_get_compare();
-  uint32_t compare_value = value;
-  if (((RTCC_IntGet() & RTCC_IEN_CC1) != 0)
-      || get_time_diff(compare, counter) > SLEEPTIMER_COMPARE_MIN_DIFF
-      || compare == counter) {
+  uint32_t compare_current = sleeptimer_hal_get_compare();
+  uint32_t compare_new = value;
+
+  if (((BURTC_IntGet() & _BURTC_IF_COMP_MASK) != 0)
+      || get_time_diff(compare_current, counter) > SLEEPTIMER_COMPARE_MIN_DIFF
+      || compare_current == counter) {
     // Add margin if necessary
-    if (get_time_diff(compare_value, counter) < SLEEPTIMER_COMPARE_MIN_DIFF) {
-      compare_value = counter + SLEEPTIMER_COMPARE_MIN_DIFF;
+    if (get_time_diff(compare_new, counter) < SLEEPTIMER_COMPARE_MIN_DIFF) {
+      compare_new = counter + SLEEPTIMER_COMPARE_MIN_DIFF;
     }
-    compare_value %= SLEEPTIMER_TMR_WIDTH;
 
-    RTCC_ChannelCCVSet(1u, compare_value);
+    // wrap around if necessary
+    compare_new %= SLEEPTIMER_TMR_WIDTH;
+
+    BURTC_CompareSet(0U, compare_new);
     sleeptimer_hal_enable_int(SLEEPTIMER_EVENT_COMP);
-  }
-
-  if (cc_disabled) {
-    RTCC->CC[1].CTRL |= RTCC_CC_CTRL_MODE_OUTPUTCOMPARE;
-    cc_disabled = false;
   }
 }
 
 /******************************************************************************
- * Enables RTCC interrupts.
+ * Enables BURTC interrupts.
  *****************************************************************************/
 void sleeptimer_hal_enable_int(uint8_t local_flag)
 {
-  uint32_t rtcc_ien = 0u;
-
-  if (local_flag & SLEEPTIMER_EVENT_OF) {
-    rtcc_ien |= RTCC_IEN_OF;
-  }
-
-  if (local_flag & SLEEPTIMER_EVENT_COMP) {
-    rtcc_ien |= RTCC_IEN_CC1;
-  }
-
-  RTCC_IntEnable(rtcc_ien);
+  BURTC_IntEnable(irqien_hal2burtc(local_flag));
 }
 
 /******************************************************************************
- * Disables RTCC interrupts.
+ * Disables BURTC interrupts.
  *****************************************************************************/
 void sleeptimer_hal_disable_int(uint8_t local_flag)
 {
-  uint32_t rtcc_int_dis = 0u;
-
-  if (local_flag & SLEEPTIMER_EVENT_OF) {
-    rtcc_int_dis |= RTCC_IEN_OF;
-  }
-
-  if (local_flag & SLEEPTIMER_EVENT_COMP) {
-    rtcc_int_dis |= RTCC_IEN_CC1;
-
-    cc_disabled = true;
-    RTCC->CC[1].CTRL &= ~_RTCC_CC_CTRL_MODE_MASK;
-  }
-
-  RTCC_IntDisable(rtcc_int_dis);
+  BURTC_IntDisable(irqien_hal2burtc(local_flag));
 }
 
 /******************************************************************************
@@ -165,15 +173,15 @@ void sleeptimer_hal_disable_int(uint8_t local_flag)
 bool sli_sleeptimer_hal_is_int_status_set(uint8_t local_flag)
 {
   bool int_is_set = false;
-  uint32_t irq_flag = RTCC_IntGet();
+  uint32_t irq_flag = BURTC_IntGet();
 
   switch (local_flag) {
     case SLEEPTIMER_EVENT_COMP:
-      int_is_set = ((irq_flag & RTCC_IF_CC1) == RTCC_IF_CC1);
+      int_is_set = (irq_flag & BURTC_IF_COMP);
       break;
 
     case SLEEPTIMER_EVENT_OF:
-      int_is_set = ((irq_flag & RTCC_IF_OF) == RTCC_IF_OF);
+      int_is_set = (irq_flag & BURTC_IF_OF);
       break;
 
     default:
@@ -184,36 +192,31 @@ bool sli_sleeptimer_hal_is_int_status_set(uint8_t local_flag)
 }
 
 /*******************************************************************************
- * RTCC interrupt handler.
+ * Gets BURTC timer frequency.
  ******************************************************************************/
-void RTCC_IRQHandler(void)
+uint32_t sleeptimer_hal_get_timer_frequency(void)
+{
+  return (CMU_ClockFreqGet(cmuClock_BURTC) >> (CMU_PrescToLog2(SL_SLEEPTIMER_FREQ_DIVIDER - 1)));
+}
+
+/*******************************************************************************
+ * BURTC interrupt handler.
+ ******************************************************************************/
+void BURTC_IRQHandler(void)
 {
   CORE_DECLARE_IRQ_STATE;
   uint8_t local_flag = 0;
   uint32_t irq_flag;
 
   CORE_ENTER_ATOMIC();
-  irq_flag = RTCC_IntGet();
+  irq_flag = BURTC_IntGet();
+  local_flag = irqflags_burtc2hal(irq_flag);
 
-  if (irq_flag & RTCC_IF_OF) {
-    local_flag |= SLEEPTIMER_EVENT_OF;
-  }
-  if (irq_flag & RTCC_IF_CC1) {
-    local_flag |= SLEEPTIMER_EVENT_COMP;
-  }
-  RTCC_IntClear(irq_flag & (RTCC_IF_OF | RTCC_IF_CC1 | RTCC_IF_CC0));
+  BURTC_IntClear(irq_flag & (BURTC_IF_OF | BURTC_IF_COMP));
 
   process_timer_irq(local_flag);
 
   CORE_EXIT_ATOMIC();
-}
-
-/*******************************************************************************
- * Gets RTCC timer frequency.
- ******************************************************************************/
-uint32_t sleeptimer_hal_get_timer_frequency(void)
-{
-  return (CMU_ClockFreqGet(cmuClock_RTCC) >> (CMU_PrescToLog2(SL_SLEEPTIMER_FREQ_DIVIDER - 1)));
 }
 
 /*******************************************************************************
@@ -224,8 +227,7 @@ uint32_t sleeptimer_hal_get_timer_frequency(void)
  *
  * @return Time difference.
  ******************************************************************************/
-__STATIC_INLINE uint32_t get_time_diff(uint32_t a,
-                                       uint32_t b)
+static uint32_t get_time_diff(uint32_t a, uint32_t b)
 {
   return (a - b);
 }
