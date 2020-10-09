@@ -169,13 +169,6 @@ void sleeptimer_hal_init_timer(void)
 #endif
 #endif
 
-  // Never modify the high frequency clocks settings for xG21 chip family.
-  // These chip communicate with the PRORTC module via a special bus.
-  // This bus need a high frequency clock to operate correctly.
-#if defined(SL_CATALOG_POWER_MANAGER_PRESENT) && (_SILICON_LABS_32B_SERIES_2_CONFIG == 1)
-  sli_power_manager_preserve_hf_clock_settings();
-#endif
-
   NVIC_ClearPendingIRQ(PRORTC_IRQn);
   NVIC_EnableIRQ(PRORTC_IRQn);
 }
