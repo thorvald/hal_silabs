@@ -1,9 +1,18 @@
-/***************************************************************************//**
- * @file sl_wfx_general_error_api.h
- * @brief This file contains the error ids for WLAN general API
+/**************************************************************************//**
+ * Copyright 2018, Silicon Laboratories Inc.
  *
- * @copyright Copyright 2015 Silicon Laboratories, Inc. http://www.silabs.com
- ******************************************************************************/
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *****************************************************************************/
 
 #ifndef _SL_WFX_GENERAL_ERROR_API_H_
 #define _SL_WFX_GENERAL_ERROR_API_H_
@@ -41,7 +50,8 @@ typedef enum sl_wfx_error_e {
   SL_WFX_ERROR_DEPRECATED_4                      = 0xd,    ///<Not used anymore
   SL_WFX_ERROR_DEPRECATED_5                      = 0xe,    ///<Not used anymore
   SL_WFX_HIF_BUS_ERROR                           = 0xf,    ///<HIF HW has reported an error. Param: HIF status register
-  SL_WFX_PDS_TESTFEATURE_MODE_ERROR              = 0x10    ///<unknown TestFeatureMode during test feature init */
+  SL_WFX_PDS_TESTFEATURE_MODE_ERROR              = 0x10,   ///<Unknown TestFeatureMode during test feature init
+  SL_WFX_ERROR_SECURELINK_EXPECTED_BITMAP        = 0x11    ///<The SecureLink bitmap must be configured right after key exchange
 } sl_wfx_error_t;
 
 /**
